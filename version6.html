@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE SOUND GAME - Panel de Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sq-pink: #ff0b55;
+            --sq-green: #037a76;
+            --sq-gold: #ffcc00;
+            --sq-dark: #050505;
+        }
+
+        body {
+            background-color: var(--sq-dark);
+            color: #eee;
+            font-family: 'Rajdhani', sans-serif;
+            background-image: linear-gradient(rgba(0,0,0,0.9), rgba(0,0,0,0.9)), url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+        }
+
+        .terminal-font { font-family: 'VT323', monospace; }
+
+        /* Hucha Cerdito */
+        .piggy-bank {
+            width: 100px; height: 80px;
+            background: var(--sq-gold);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            position: relative;
+            box-shadow: inset -5px -5px 15px rgba(0,0,0,0.3), 0 0 20px rgba(255, 204, 0, 0.4);
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .piggy-bank::after { content: ''; position: absolute; top: 35px; right: -5px; width: 15px; height: 25px; background: #d4a017; border-radius: 50%; }
+        
+        .coin-animation {
+            position: absolute; top: -40px; left: 50%; width: 16px; height: 16px;
+            background: #ffd700; border-radius: 50%; border: 2px solid #b8860b;
+            z-index: 50; animation: drop-and-spin 0.6s ease-in forwards;
+        }
+
+        @keyframes drop-and-spin {
+            0% { transform: translate(-50%, 0) rotateY(0deg); opacity: 1; }
+            100% { transform: translate(-50%, 60px) rotateY(360deg); opacity: 0; }
+        }
+
+        .sq-row { background: rgba(255,255,255,0.03); transition: all 0.2s; border-left: 4px solid var(--sq-green); margin-bottom: 8px; }
+        .row-dead { border-left-color: var(--sq-pink); background: rgba(255, 11, 85, 0.1); }
+
+        input, select { background: #111; border: 1px solid #333; color: white; font-family: 'VT323'; font-size: 1.2rem; }
+        input:focus { border-color: var(--sq-pink); outline: none; }
+
+        .btn-action {
+            width: 30px; height: 30px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;
+            border: 1px solid #444; transition: 0.2s; border-radius: 4px;
+        }
+        .btn-plus:hover { background: var(--sq-green); color: white; }
+        .btn-minus:hover { background: var(--sq-pink); color: white; }
+
+        /* Estilo para los selectores de cartas */
+        .card-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+        .card-dot { width: 18px; height: 18px; border: 1px solid #444; border-radius: 3px; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .card-on { background: cyan; color: black; border-color: cyan; box-shadow: 0 0 5px cyan; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 border-b border-zinc-800 pb-8 gap-6">
+            <div>
+                <h1 class="text-5xl font-bold tracking-tighter">
+                    <span class="text-pink-600">○ △ □</span> THE <span class="text-pink-600">SOUND</span> GAME
+                </h1>
+                <p class="text-xs text-zinc-500 tracking-[0.5em] uppercase mt-1">Monitor de Estatus Pedagógico</p>
+            </div>
+
+            <div class="flex items-center gap-6 bg-zinc-900/80 p-4 border border-zinc-800 rounded-lg shadow-2xl">
+                <div class="relative">
+                    <div class="piggy-bank" id="piggy"></div>
+                    <div id="coin-container"></div>
+                </div>
+                <div class="text-right min-w-[180px]">
+                    <span class="text-[10px] text-zinc-400 uppercase block font-bold">Bote Común (Wones)</span>
+                    <span id="total-jackpot" class="text-4xl text-yellow-500 font-bold terminal-font">0 ₩</span>
+                    <div class="mt-2 flex gap-1 justify-end">
+                        <button onclick="manualJackpot(1000)" class="text-[10px] bg-zinc-800 px-2 rounded">+1K</button>
+                        <button onclick="manualJackpot(5000)" class="text-[10px] bg-zinc-800 px-2 rounded">+5K</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-3">
+                <div class="bg-zinc-900/80 p-6 border-t-2 border-pink-600 rounded shadow-lg sticky top-8">
+                    <h2 class="terminal-font text-xl text-pink-500 mb-6 uppercase">Reclutamiento</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[10px] text-zinc-500 block mb-1">DORSAL / NOMBRE</label>
+                            <input type="text" id="new-id" class="w-full p-2 text-center" placeholder="Pje: 456">
+                        </div>
+                        <button onclick="addUser()" class="w-full bg-pink-600 p-3 font-bold uppercase hover:bg-pink-500 transition-all active:scale-95">Registrar Jugador</button>
+                    </div>
+                    
+                    <div class="mt-10 pt-6 border-t border-zinc-800">
+                        <button onclick="resetData()" class="text-zinc-600 text-[10px] hover:text-red-500 uppercase tracking-widest">Borrar base de datos</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-9">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-separate border-spacing-y-2">
+                        <thead class="text-[10px] text-zinc-500 uppercase terminal-font">
+                            <tr>
+                                <th class="px-4">Jugador</th>
+                                <th class="px-4 text-center">Corazones</th>
+                                <th class="px-4">Wones</th>
+                                <th class="px-4">Rango</th>
+                                <th class="px-4">Cartas (001-016)</th>
+                                <th class="px-4 text-right">Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="player-list">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = JSON.parse(localStorage.getItem('tsg_tfm_v1')) || { players: [], jackpot: 0 };
+
+        function updateUI() {
+            const list = document.getElementById('player-list');
+            const jackpotDisplay = document.getElementById('total-jackpot');
+            
+            jackpotDisplay.innerText = state.jackpot.toLocaleString() + ' ₩';
+            list.innerHTML = '';
+
+            state.players.forEach((p, index) => {
+                const isDead = p.lives === 0;
+                const tr = document.createElement('tr');
+                tr.className = `sq-row ${isDead ? 'row-dead' : ''}`;
+
+                // Generar puntos de cartas
+                let cardsHtml = '<div class="card-grid">';
+                for(let i=1; i<=16; i++) {
+                    const num = i.toString().padStart(3, '0');
+                    const active = p.cards.includes(num) ? 'card-on' : '';
+                    cardsHtml += `<div class="card-dot ${active}" onclick="toggleCard(${index}, '${num}')">${i}</div>`;
+                }
+                cardsHtml += '</div>';
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3">
+                        <span class="terminal-font text-2xl font-bold ${isDead ? 'text-pink-500' : 'text-white'}">#${p.id}</span>
+                    </td>
+                    <td class="px-4">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="modLife(${index}, -1)" class="btn-action btn-minus">-</button>
+                            <span class="terminal-font text-xl mx-2 text-pink-500">${'♥'.repeat(p.lives)}${'♡'.repeat(3-p.lives)}</span>
+                            <button onclick="modLife(${index}, 1)" class="btn-action btn-plus">+</button>
+                        </div>
+                    </td>
+                    <td class="px-4">
+                        <input type="number" value="${p.wones}" onchange="updateWones(${index}, this.value)" class="w-24 p-1 text-center text-yellow-500">
+                    </td>
+                    <td class="px-4">
+                        <select onchange="updateLevel(${index}, this.value)" class="text-sm p-1">
+                            <option value="Aspirante" ${p.level==='Aspirante'?'selected':''}>Aspirante</option>
+                            <option value="Jugador" ${p.level==='Jugador'?'selected':''}>Jugador</option>
+                            <option value="Círculo" ${p.level==='Círculo'?'selected':''}>Círculo</option>
+                            <option value="Triángulo" ${p.level==='Triángulo'?'selected':''}>Triángulo</option>
+                            <option value="Cuadrado" ${p.level==='Cuadrado'?'selected':''}>Cuadrado</option>
+                            <option value="Líder" ${p.level==='Líder'?'selected':''}>Líder</option>
+                        </select>
+                    </td>
+                    <td class="px-4">${cardsHtml}</td>
+                    <td class="px-4 text-right">
+                        <button onclick="removeUser(${index})" class="text-zinc-700 hover:text-red-500">×</button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+
+            localStorage.setItem('tsg_tfm_v1', JSON.stringify(state));
+        }
+
+        function addUser() {
+            const idInput = document.getElementById('new-id');
+            if(!idInput.value) return;
+            state.players.push({
+                id: idInput.value,
+                lives: 3,
+                wones: 0,
+                level: 'Aspirante',
+                cards: []
+            });
+            idInput.value = '';
+            updateUI();
+        }
+
+        function modLife(index, delta) {
+            const p = state.players[index];
+            const oldLives = p.lives;
+            p.lives = Math.max(0, Math.min(3, p.lives + delta));
+
+            // Automatización del Cerdito
+            if (delta < 0 && oldLives > 0) {
+                state.jackpot += 5000; // Multa por perder corazón
+                dropCoin();
+                
+                if (p.lives === 0) {
+                    // Si muere, transfiere sus wones al cerdito
+                    state.jackpot += p.wones;
+                    p.wones = 0;
+                    alert(`¡Jugador #${p.id} ELIMINADO! Sus wones pasan al Bote Común.`);
+                }
+            }
+            updateUI();
+        }
+
+        function updateWones(index, val) {
+            state.players[index].wones = parseInt(val) || 0;
+            localStorage.setItem('tsg_tfm_v1', JSON.stringify(state));
+        }
+
+        function updateLevel(index, val) {
+            state.players[index].level = val;
+            localStorage.setItem('tsg_tfm_v1', JSON.stringify(state));
+        }
+
+        function toggleCard(pIndex, cardNum) {
+            const p = state.players[pIndex];
+            const cardIdx = p.cards.indexOf(cardNum);
+            if(cardIdx > -1) p.cards.splice(cardIdx, 1);
+            else p.cards.push(cardNum);
+            updateUI();
+        }
+
+        function manualJackpot(amt) {
+            state.jackpot += amt;
+            dropCoin();
+            updateUI();
+        }
+
+        function dropCoin() {
+            const container = document.getElementById('coin-container');
+            const coin = document.createElement('div');
+            coin.className = 'coin-animation';
+            container.appendChild(coin);
+            const p = document.getElementById('piggy');
+            p.style.transform = 'scale(1.2)';
+            setTimeout(() => { coin.remove(); p.style.transform = 'scale(1)'; }, 600);
+        }
+
+        function removeUser(index) {
+            if(confirm("¿Eliminar registro de este jugador?")) {
+                state.players.splice(index, 1);
+                updateUI();
+            }
+        }
+
+        function resetData() {
+            if(confirm("¿Seguro que quieres resetear todo el juego?")) {
+                state = { players: [], jackpot: 0 };
+                updateUI();
+            }
+        }
+
+        window.onload = updateUI;
+    </script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQUID GAME - Terminal de Análisis Musical</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --squid-pink: #ff0b55;
+            --squid-green: #037a76;
+            --squid-dark: #050505;
+            --squid-gold: #ffcc00;
+        }
+
+        body {
+            background-color: var(--squid-dark);
+            color: #d1d1d1;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 2px, 2px 100%;
+        }
+
+        .terminal-font { font-family: 'VT323', monospace; }
+
+        /* Estética de los Símbolos */
+        .symbol-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            margin-right: 8px;
+        }
+        .circle { border-radius: 50%; width: 14px; height: 14px; }
+        .triangle { 
+            width: 0; height: 0; border-left: 7px solid transparent; 
+            border-right: 7px solid transparent; border-bottom: 12px solid white; 
+            border-top: 0; background: none; border-style: solid;
+        }
+        .square { width: 14px; height: 14px; }
+
+        /* El Cerdito Hucha Dinámico */
+        .piggy-bank {
+            width: 120px;
+            height: 100px;
+            position: relative;
+            background: #ffcc00;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.3), 0 0 20px rgba(255, 204, 0, 0.2);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .piggy-bank::before { /* Oreja */
+            content: ''; position: absolute; top: -10px; left: 20px;
+            width: 25px; height: 25px; background: #ffcc00; border-radius: 5px; transform: rotate(-20deg);
+        }
+        .piggy-bank::after { /* Hocico */
+            content: ''; position: absolute; top: 40px; right: -10px;
+            width: 20px; height: 30px; background: #e6b800; border-radius: 50%;
+        }
+        .piggy-slot {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 6px; background: #333; border-radius: 10px;
+        }
+        .coin-animation {
+            animation: coinDrop 0.5s forwards;
+            position: absolute; top: -20px; left: 50%;
+            width: 15px; height: 15px; background: gold; border-radius: 50%; opacity: 0;
+        }
+        @keyframes coinDrop {
+            0% { transform: translateY(-30px); opacity: 1; }
+            100% { transform: translateY(20px); opacity: 0; }
+        }
+
+        /* Paneles */
+        .panel-squid {
+            background: #0f0f0f;
+            border-left: 4px solid var(--squid-pink);
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.5);
+        }
+
+        .btn-pink { background: var(--squid-pink); color: white; border: none; font-weight: bold; letter-spacing: 2px; }
+        .btn-pink:hover { filter: brightness(1.2); letter-spacing: 4px; }
+
+        .scan-line {
+            height: 2px; background: rgba(255, 11, 85, 0.2);
+            position: absolute; width: 100%; animation: scan 4s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .status-eliminated {
+            background: rgba(255, 0, 0, 0.05) !important;
+            border-color: #ff0000 !important;
+            filter: grayscale(0.5);
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- HEADER VIP -->
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-8 mb-12 border-b border-zinc-800 pb-8">
+            <div class="flex items-center gap-6">
+                <div class="bg-[#ff0b55] p-5">
+                    <div class="square border-2 border-white w-8 h-8"></div>
+                </div>
+                <div>
+                    <h1 class="terminal-font text-4xl text-white">S.G. ANALYTICS_SYSTEM_V4</h1>
+                    <div class="flex gap-4 mt-2">
+                        <span class="flex items-center text-xs text-zinc-500 uppercase tracking-[0.2em]">
+                            <div class="circle symbol-box border-zinc-500"></div> Auth: Front_Man
+                        </span>
+                        <span class="text-pink-500 text-xs terminal-font animate-pulse">[ TERMINAL ACTIVE ]</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HUCHA CERDITO -->
+            <div class="flex items-center gap-8 bg-zinc-900/50 p-6 rounded-sm border border-zinc-800 relative overflow-hidden">
+                <div id="piggy-container" class="relative">
+                    <div class="piggy-bank" id="visual-piggy">
+                        <div class="piggy-slot"></div>
+                        <div id="coin-slot"></div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="terminal-font text-sm text-zinc-500 mb-1">RECOLECCIÓN DE DEUDA</p>
+                    <p id="jackpot-display" class="terminal-font text-5xl text-yellow-500 font-bold">0€</p>
+                    <button onclick="manualDrop()" class="text-[10px] text-pink-500 mt-2 hover:underline terminal-font">
+                        INGRESAR MULTA INDIVIDUAL [+500€]
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            
+            <!-- REGISTRO (TRIÁNGULO) -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="panel-squid p-8 relative">
+                    <div class="flex items-center mb-8">
+                        <div class="triangle symbol-box border-b-pink-500 scale-125 mr-4"></div>
+                        <h2 class="terminal-font text-2xl text-pink-500">NUEVO SUJETO</h2>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="text-xs uppercase text-zinc-500 mb-2 block">Dorsal del Jugador</label>
+                            <input type="text" id="p-id" placeholder="ID (E.G. 456)" class="w-full bg-black border border-zinc-800 p-3 terminal-font text-2xl text-pink-500 outline-none focus:border-pink-500">
+                        </div>
+                        <div>
+                            <label class="text-xs uppercase text-zinc-500 mb-2 block">Vidas Iniciales</label>
+                            <div class="flex items-center gap-4">
+                                <input type="number" id="p-lives" value="3" class="w-full bg-black border border-zinc-800 p-3 terminal-font text-2xl text-white outline-none">
+                                <button onclick="register()" class="btn-pink px-8 h-[54px] terminal-font text-lg">REGISTRAR</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ESTADÍSTICAS -->
+                <div class="bg-zinc-900/30 p-6 border border-zinc-800">
+                    <div class="flex justify-between text-xs terminal-font text-zinc-500 mb-4">
+                        <span>SISTEMA DE ARCHIVADO</span>
+                        <span id="system-time">00:00:00</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="save()" class="border border-zinc-700 p-3 terminal-font text-sm hover:bg-white hover:text-black transition-all">SALVAR_LOGS</button>
+                        <button onclick="reset()" class="border border-red-900/50 p-3 terminal-font text-sm text-red-500 hover:bg-red-900">RESETEAR_DB</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MONITOR DE JUGADORES (CÍRCULO) -->
+            <div class="lg:col-span-8">
+                <div class="panel-squid p-8 min-h-[600px] relative">
+                    <div class="scan-line"></div>
+                    <div class="flex justify-between items-center mb-10 border-b border-zinc-800 pb-4">
+                        <div class="flex items-center">
+                            <div class="circle symbol-box border-white scale-125 mr-4"></div>
+                            <h2 class="terminal-font text-2xl">LISTADO DE SUPERVIVIENTES</h2>
+                        </div>
+                        <div id="stats-total" class="terminal-font text-zinc-500">ACTIVOS: 0</div>
+                    </div>
+
+                    <div id="players-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Tarjetas de jugadores dinámicas -->
+                    </div>
+
+                    <div id="empty-msg" class="flex flex-col items-center justify-center h-80 opacity-20">
+                        <div class="triangle border-b-zinc-500 w-20 h-20 mb-4"></div>
+                        <p class="terminal-font">ESPERANDO INGRESO DE SUJETOS...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('sqd_v4')) || { players: [], jackpot: 0 };
+
+        function update() {
+            const grid = document.getElementById('players-grid');
+            const empty = document.getElementById('empty-msg');
+            const jackpotDisplay = document.getElementById('jackpot-display');
+            const stats = document.getElementById('stats-total');
+
+            jackpotDisplay.innerText = db.jackpot.toLocaleString() + '€';
+            stats.innerText = `SUJETOS: ${db.players.length} | ELIMINADOS: ${db.players.filter(p => p.lives === 0).length}`;
+
+            grid.innerHTML = '';
+            if (db.players.length > 0) {
+                empty.style.display = 'none';
+                
+                // Orden: vivos primero, luego por id
+                const sorted = [...db.players].sort((a,b) => {
+                    if (a.lives > 0 && b.lives === 0) return -1;
+                    if (a.lives === 0 && b.lives > 0) return 1;
+                    return a.id.localeCompare(b.id);
+                });
+
+                sorted.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = `bg-black border border-zinc-800 p-4 flex items-center justify-between transition-all ${p.lives === 0 ? 'status-eliminated' : 'border-l-4 border-l-green-600'}`;
+                    
+                    const hearts = p.lives > 0 ? "▮".repeat(p.lives).padEnd(5, '▯') : "ELIMINADO";
+
+                    card.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="terminal-font text-2xl ${p.lives > 0 ? 'text-white' : 'text-red-600'}">#${p.id}</span>
+                            <span class="terminal-font text-xs tracking-widest text-zinc-500 mt-1">${hearts}</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <div class="text-[10px] text-zinc-600 uppercase">Multas</div>
+                                <div class="terminal-font text-pink-500">${p.fines}</div>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <button onclick="modLife('${p.id}', 1)" class="w-8 bg-zinc-900 hover:bg-green-900 text-xs terminal-font">+</button>
+                                <button onclick="modLife('${p.id}', -1)" class="w-8 bg-zinc-900 hover:bg-pink-900 text-xs terminal-font">-</button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } else {
+                empty.style.display = 'flex';
+            }
+            localStorage.setItem('sqd_v4', JSON.stringify(db));
+        }
+
+        function register() {
+            const idInput = document.getElementById('p-id');
+            const livesInput = document.getElementById('p-lives');
+            if(!idInput.value) return;
+            if(db.players.find(p => p.id === idInput.value)) return;
+
+            db.players.push({
+                id: idInput.value,
+                lives: parseInt(livesInput.value),
+                fines: 0
+            });
+            idInput.value = '';
+            update();
+        }
+
+        function modLife(id, delta) {
+            const p = db.players.find(x => x.id === id);
+            if(!p) return;
+            
+            p.lives += delta;
+            if(p.lives < 0) p.lives = 0;
+            
+            if(delta < 0) {
+                dropCoin();
+                p.fines++;
+                db.jackpot += 500;
+                if(p.lives === 0) db.jackpot += 500; // Bonus por eliminación
+            }
+            update();
+        }
+
+        function dropCoin() {
+            const slot = document.getElementById('coin-slot');
+            const coin = document.createElement('div');
+            coin.className = 'coin-animation';
+            slot.appendChild(coin);
+            
+            const piggy = document.getElementById('visual-piggy');
+            piggy.style.transform = 'scale(1.2) rotate(5deg)';
+            
+            setTimeout(() => {
+                coin.remove();
+                piggy.style.transform = 'scale(1)';
+            }, 500);
+        }
+
+        function manualDrop() {
+            db.jackpot += 500;
+            dropCoin();
+            update();
+        }
+
+        function save() {
+            alert("Sincronización con el Códice Maestro finalizada.");
+            localStorage.setItem('sqd_v4', JSON.stringify(db));
+        }
+
+        function reset() {
+            if(confirm("¿Purgar todos los datos? Esta acción es irreversible.")) {
+                db = { players: [], jackpot: 0 };
+                update();
+            }
+        }
+
+        // Reloj de terminal
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('system-time').innerText = now.toTimeString().split(' ')[0];
+        }, 1000);
+
+        window.onload = update;
+    </script>
+</body>
+</html>

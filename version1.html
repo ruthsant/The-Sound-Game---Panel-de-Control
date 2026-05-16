@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE SOUND GAME - Panel de Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --squid-pink: #ff0b55;
+            --squid-green: #037a76;
+            --squid-dark: #1a1a1a;
+        }
+        body {
+            background-color: var(--squid-dark);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at center, #2a2a2a 0%, #1a1a1a 100%);
+            min-height: 100vh;
+        }
+        .pixel-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+        .card-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        .btn-pink {
+            background-color: var(--squid-pink);
+            transition: all 0.3s;
+        }
+        .btn-pink:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--squid-pink);
+        }
+        .btn-green {
+            background-color: var(--squid-green);
+        }
+        .status-alive { color: #4ade80; }
+        .status-dead { color: #f87171; opacity: 0.6; }
+        
+        /* Animación para el cerdito */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .piggy-animate {
+            animation: pulse 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+            <div>
+                <h1 class="pixel-font text-2xl md:text-3xl text-pink-500 mb-2">THE SOUND GAME</h1>
+                <p class="text-gray-400">Panel de Control de Análisis Musical</p>
+            </div>
+            
+            <!-- Cerdito de Oro Display -->
+            <div id="piggy-bank" class="card-glass p-6 flex flex-col items-center border-pink-500 border-2 min-w-[250px]">
+                <span class="pixel-font text-xs text-pink-500 mb-2">CERDITO DE ORO</span>
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl">💰</span>
+                    <span id="jackpot-value" class="pixel-font text-3xl text-yellow-400">0€</span>
+                </div>
+                <button onclick="addToJackpot(100)" class="mt-4 px-4 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-xs pixel-font text-black">
+                    +100€ (ELIMINADO)
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Columna Izquierda: Registro -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="card-glass p-6">
+                    <h2 class="pixel-font text-sm mb-6 border-b border-gray-700 pb-2">REGISTRAR JUGADOR</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs uppercase text-gray-400 mb-1">Número de Jugador</label>
+                            <input type="text" id="player-num" placeholder="Ej: 001" class="w-full bg-black/40 border border-gray-600 p-2 rounded focus:border-pink-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase text-gray-400 mb-1">Vidas Iniciales</label>
+                            <input type="number" id="player-lives" value="3" min="1" max="5" class="w-full bg-black/40 border border-gray-600 p-2 rounded focus:border-pink-500 outline-none">
+                        </div>
+                        <button onclick="addPlayer()" class="w-full btn-pink py-3 rounded pixel-font text-[10px] tracking-widest mt-2">
+                            INGRESAR AL JUEGO
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-glass p-6">
+                    <h2 class="pixel-font text-sm mb-4 border-b border-gray-700 pb-2">OPCIONES GLOBALES</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="saveData()" class="bg-gray-700 hover:bg-gray-600 p-2 rounded text-[10px] pixel-font">GUARDAR</button>
+                        <button onclick="resetJackpot()" class="bg-red-900/50 hover:bg-red-800 p-2 rounded text-[10px] pixel-font">LIMPIAR CERDO</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Leaderboard -->
+            <div class="lg:col-span-2">
+                <div class="card-glass p-6 overflow-x-auto">
+                    <h2 class="pixel-font text-sm mb-6 border-b border-gray-700 pb-2">CLASIFICACIÓN DE SUPERVIVENCIA</h2>
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-xs text-gray-500 uppercase border-b border-gray-800">
+                                <th class="pb-4 px-2">Jugador</th>
+                                <th class="pb-4 px-2 text-center">Vidas</th>
+                                <th class="pb-4 px-2 text-center">Eliminaciones</th>
+                                <th class="pb-4 px-2 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <!-- Los jugadores se cargan aquí -->
+                        </tbody>
+                    </table>
+                    <div id="empty-state" class="text-center py-12 text-gray-500 italic">
+                        No hay jugadores registrados. Los VIPs están esperando...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let players = JSON.parse(localStorage.getItem('squid_players')) || [];
+        let jackpot = parseInt(localStorage.getItem('squid_jackpot')) || 0;
+
+        function updateUI() {
+            const body = document.getElementById('leaderboard-body');
+            const emptyState = document.getElementById('empty-state');
+            const jackpotDisplay = document.getElementById('jackpot-value');
+            
+            // Actualizar Cerdito
+            jackpotDisplay.innerText = jackpot.toLocaleString() + '€';
+
+            // Limpiar tabla
+            body.innerHTML = '';
+            
+            if (players.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                
+                // Ordenar: primero los vivos, luego por número de jugador
+                const sortedPlayers = [...players].sort((a, b) => {
+                    if (a.lives > 0 && b.lives === 0) return -1;
+                    if (a.lives === 0 && b.lives > 0) return 1;
+                    return a.num.localeCompare(b.num);
+                });
+
+                sortedPlayers.forEach(player => {
+                    const row = document.createElement('tr');
+                    row.className = `border-b border-gray-800/50 ${player.lives === 0 ? 'status-dead' : ''}`;
+                    
+                    const hearts = "❤️".repeat(player.lives) + "🖤".repeat(Math.max(0, 3 - player.lives));
+
+                    row.innerHTML = `
+                        <td class="py-4 px-2">
+                            <span class="pixel-font text-sm ${player.lives > 0 ? 'text-green-400' : 'text-red-500'}">
+                                #${player.num}
+                            </span>
+                        </td>
+                        <td class="py-4 px-2 text-center text-xl">${hearts}</td>
+                        <td class="py-4 px-2 text-center">
+                            <span class="bg-black/50 px-3 py-1 rounded-full text-xs font-bold text-pink-400">
+                                ${player.deaths}
+                            </span>
+                        </td>
+                        <td class="py-4 px-2 text-right space-x-2">
+                            <button onclick="changeLives('${player.num}', 1)" class="text-green-500 hover:text-white px-2">✚</button>
+                            <button onclick="changeLives('${player.num}', -1)" class="text-red-500 hover:text-white px-2">➖</button>
+                            <button onclick="removePlayer('${player.num}')" class="text-gray-600 hover:text-red-500 px-2 ml-4">✕</button>
+                        </td>
+                    `;
+                    body.appendChild(row);
+                });
+            }
+            localStorage.setItem('squid_players', JSON.stringify(players));
+            localStorage.setItem('squid_jackpot', jackpot.toString());
+        }
+
+        function addPlayer() {
+            const numInput = document.getElementById('player-num');
+            const livesInput = document.getElementById('player-lives');
+            
+            if (!numInput.value) return;
+
+            const existing = players.find(p => p.num === numInput.value);
+            if (existing) {
+                alert("Este número de jugador ya está en el sistema.");
+                return;
+            }
+
+            players.push({
+                num: numInput.value,
+                lives: parseInt(livesInput.value),
+                deaths: 0
+            });
+
+            numInput.value = '';
+            updateUI();
+        }
+
+        function changeLives(num, delta) {
+            const player = players.find(p => p.num === num);
+            if (player) {
+                player.lives += delta;
+                if (player.lives < 0) player.lives = 0;
+                
+                // Si pierde su última vida, suma al cerdito y cuenta eliminación
+                if (delta < 0 && player.lives === 0) {
+                    player.deaths += 1;
+                    addToJackpot(100);
+                }
+                
+                updateUI();
+            }
+        }
+
+        function addToJackpot(amount) {
+            jackpot += amount;
+            const piggy = document.getElementById('piggy-bank');
+            piggy.classList.add('piggy-animate');
+            setTimeout(() => piggy.classList.remove('piggy-animate'), 500);
+            updateUI();
+        }
+
+        function removePlayer(num) {
+            players = players.filter(p => p.num !== num);
+            updateUI();
+        }
+
+        function resetJackpot() {
+            if(confirm("¿Seguro que quieres vaciar el Cerdito de Oro? Los VIPs se enfadarán.")) {
+                jackpot = 0;
+                updateUI();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('squid_players', JSON.stringify(players));
+            localStorage.setItem('squid_jackpot', jackpot.toString());
+            alert("Datos de la Operación guardados correctamente.");
+        }
+
+        // Inicializar
+        window.onload = updateUI;
+    </script>
+</body>
+</html>

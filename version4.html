@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE SOUND GAME - Clasificación VIP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sq-pink: #ff0b55;
+            --sq-cyan: #00fff2;
+            --sq-green: #037a76;
+            --sq-gold: #ffcc00;
+            --sq-dark: #020202;
+        }
+
+        body {
+            background-color: var(--sq-dark);
+            color: #d1d1d1;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, #111 0%, #020202 100%),
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+            background-size: 100% 100%, 100% 4px;
+        }
+
+        .terminal-font { font-family: 'VT323', monospace; }
+
+        /* Efecto Glitch */
+        .glitch {
+            position: relative;
+            text-shadow: 0.05em 0 0 var(--sq-pink), -0.025em -0.05em 0 var(--sq-cyan);
+            animation: glitch 500ms infinite;
+        }
+        @keyframes glitch {
+            0% { text-shadow: 0.05em 0 0 var(--sq-pink), -0.025em -0.05em 0 var(--sq-cyan); }
+            14% { text-shadow: 0.05em 0 0 var(--sq-pink), -0.025em -0.05em 0 var(--sq-cyan); }
+            15% { text-shadow: -0.05em -0.025em 0 var(--sq-pink), 0.025em 0.05em 0 var(--sq-cyan); }
+            49% { text-shadow: -0.05em -0.025em 0 var(--sq-pink), 0.025em 0.05em 0 var(--sq-cyan); }
+            50% { text-shadow: 0.025em 0.05em 0 var(--sq-pink), 0.05em 0 0 var(--sq-cyan); }
+            99% { text-shadow: 0.025em 0.05em 0 var(--sq-pink), 0.05em 0 0 var(--sq-cyan); }
+            100% { text-shadow: -0.025em 0 0 var(--sq-pink), -0.025em -0.025em 0 var(--sq-cyan); }
+        }
+
+        /* Monitor CRT Scanline */
+        .crt-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none; z-index: 50;
+        }
+
+        /* Hucha Cerdito Avanzada */
+        .piggy-wrapper {
+            perspective: 1000px;
+        }
+        .piggy-bank {
+            width: 140px; height: 110px;
+            background: var(--sq-gold);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            position: relative;
+            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.4), 0 0 40px rgba(255, 204, 0, 0.3);
+            transform-style: preserve-3d;
+            transition: all 0.3s;
+        }
+        .piggy-ear {
+            position: absolute; top: -15px; left: 25px; width: 30px; height: 30px;
+            background: var(--sq-gold); border-radius: 5px; transform: rotate(-25deg);
+        }
+        .piggy-snout {
+            position: absolute; top: 45px; right: -8px; width: 25px; height: 35px;
+            background: #d4a017; border-radius: 50%; border: 2px solid #b8860b;
+        }
+        .piggy-eye {
+            position: absolute; top: 35px; right: 30px; width: 8px; height: 8px;
+            background: #1a1a1a; border-radius: 50%;
+        }
+        .fill-meter {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+            width: 60%; height: 8px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden;
+        }
+        .fill-level {
+            height: 100%; background: white; width: 0%; transition: width 1s ease-out;
+        }
+
+        /* Símbolos SG */
+        .sg-symbol { display: inline-flex; border: 3px solid currentColor; margin-right: 12px; transition: all 0.3s; }
+        .sg-circle { width: 18px; height: 18px; border-radius: 50%; }
+        .sg-triangle { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid currentColor; border-top: 0; background: none; border-style: solid; }
+        .sg-square { width: 18px; height: 18px; }
+
+        /* Tarjetas de Jugador */
+        .player-card {
+            background: linear-gradient(135deg, #0a0a0a 0%, #151515 100%);
+            border: 1px solid #222;
+            position: relative;
+            overflow: hidden;
+        }
+        .player-card::before {
+            content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%;
+            background: var(--sq-pink); opacity: 0.3;
+        }
+        .alive-card::before { background: var(--sq-green); opacity: 1; }
+        
+        .eliminated-overlay {
+            background: rgba(255, 11, 85, 0.15);
+            border-color: var(--sq-pink) !important;
+        }
+
+        .life-bar {
+            height: 6px; background: #333; border-radius: 3px; overflow: hidden;
+        }
+        .life-fill {
+            height: 100%; background: var(--sq-green); transition: width 0.5s;
+        }
+        .life-critical { background: var(--sq-pink); }
+
+        /* Botones */
+        .sq-btn {
+            background: #111; border: 1px solid #333; transition: all 0.2s;
+            text-transform: uppercase; font-family: 'VT323';
+        }
+        .sq-btn:hover { background: var(--sq-pink); color: white; border-color: var(--sq-pink); box-shadow: 0 0 10px var(--sq-pink); }
+
+        .coin-fx {
+            position: absolute; pointer-events: none;
+            width: 12px; height: 12px; background: gold; border-radius: 50%;
+            z-index: 100; animation: fall 0.6s ease-in forwards;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-50px) scale(1); opacity: 1; }
+            100% { transform: translateY(30px) scale(0.5); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="crt-overlay"></div>
+
+    <div class="max-w-7xl mx-auto relative z-10">
+        
+        <!-- CABECERA DE OPERACIONES -->
+        <header class="flex flex-col lg:flex-row items-center justify-between mb-12 gap-8 border-b-2 border-zinc-800 pb-10">
+            <div class="flex items-center gap-6 group">
+                <div class="bg-zinc-100 p-6 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-transform group-hover:rotate-90">
+                    <div class="sg-square border-black text-black scale-150"></div>
+                </div>
+                <div>
+                    <h1 class="terminal-font text-5xl text-white glitch tracking-tighter">THE SOUND GAME</h1>
+                    <div class="flex items-center gap-4 mt-2">
+                        <span class="text-xs uppercase tracking-[0.4em] text-zinc-500 flex items-center">
+                            <span class="sg-circle sg-symbol border-zinc-600 w-3 h-3 border-2"></span> 
+                            Control: FRONT_MAN_OFFICE
+                        </span>
+                        <div class="h-1 w-12 bg-pink-600 animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CERDITO 3.0 -->
+            <div class="bg-zinc-900/80 p-6 px-10 border-2 border-zinc-800 rounded-sm flex items-center gap-10 hover:border-yellow-500 transition-colors">
+                <div class="piggy-wrapper">
+                    <div id="visual-piggy" class="piggy-bank">
+                        <div class="piggy-ear"></div>
+                        <div class="piggy-eye"></div>
+                        <div class="piggy-snout"></div>
+                        <div class="fill-meter"><div id="fill-level" class="fill-level"></div></div>
+                        <div id="coin-spawn"></div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <h2 class="terminal-font text-zinc-500 text-lg uppercase tracking-widest">Saldo de Deuda</h2>
+                    <p id="jackpot-val" class="terminal-font text-6xl text-yellow-500 font-bold drop-shadow-[0_0_10px_rgba(255,204,0,0.3)]">0€</p>
+                    <button onclick="manualPenalty()" class="mt-2 text-[10px] pixel-font text-pink-500 hover:text-white flex items-center justify-end gap-2 ml-auto">
+                        <span>[ REGISTRAR SANCIÓN ]</span>
+                        <span class="sg-triangle sg-symbol border-b-pink-500 w-2 h-0 border-b-[8px] border-l-[5px] border-r-[5px]"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            
+            <!-- PANEL DE COMANDO (TRIÁNGULO) -->
+            <div class="lg:col-span-4 space-y-8">
+                <div class="bg-[#0a0a0a] border-t-4 border-pink-600 p-8 shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-2 opacity-10">
+                        <div class="sg-triangle sg-symbol text-white scale-[4]"></div>
+                    </div>
+                    <h3 class="terminal-font text-2xl text-pink-500 mb-8 flex items-center gap-3">
+                        <span class="sg-triangle sg-symbol border-b-pink-500"></span>
+                        ALTA DE JUGADORES
+                    </h3>
+                    
+                    <div class="space-y-6">
+                        <div class="group">
+                            <label class="text-[10px] uppercase text-zinc-600 mb-2 block tracking-widest group-focus-within:text-pink-500 transition-colors">Identificador Dorsal</label>
+                            <input type="text" id="in-id" placeholder="NUM (E.G. 067)" class="w-full bg-zinc-950 border border-zinc-800 p-4 terminal-font text-3xl text-pink-500 focus:border-pink-600 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="text-[10px] uppercase text-zinc-600 mb-2 block tracking-widest">Barras de Vida (Máx 5)</label>
+                            <div class="flex gap-4">
+                                <input type="number" id="in-lives" value="3" min="1" max="5" class="w-20 bg-zinc-950 border border-zinc-800 p-4 terminal-font text-3xl text-white outline-none">
+                                <button onclick="addPlayer()" class="flex-1 bg-pink-600 hover:bg-pink-500 text-white terminal-font text-xl tracking-widest transition-all active:scale-95 shadow-lg shadow-pink-900/20">
+                                    RECLUTAR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HERRAMIENTAS DE SISTEMA -->
+                <div class="bg-zinc-950 p-6 border border-zinc-800">
+                    <div class="flex justify-between text-[10px] terminal-font text-zinc-600 mb-6 uppercase tracking-tighter">
+                        <span>System_Status: Optimal</span>
+                        <span id="clock">00:00:00</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="save()" class="sq-btn p-3 text-sm">ENCRIPTAR_DATA</button>
+                        <button onclick="fullReset()" class="sq-btn p-3 text-sm text-red-700 border-red-900/30 hover:bg-red-950">RESET_GENERAL</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MONITOR DE CLASIFICACIÓN (CÍRCULO) -->
+            <div class="lg:col-span-8">
+                <div class="bg-[#0a0a0a] border-t-4 border-zinc-100 p-8 min-h-[650px] relative">
+                    <div class="absolute top-4 right-8 text-[10px] terminal-font text-zinc-700 animate-pulse">
+                        LIVE FEED // CAM_04
+                    </div>
+                    
+                    <div class="flex items-center gap-4 mb-10 border-b border-zinc-800 pb-6">
+                        <span class="sg-circle sg-symbol border-zinc-100 scale-125"></span>
+                        <h2 class="terminal-font text-3xl text-white tracking-tight">VIGILANCIA DE JUGADORES</h2>
+                        <div class="ml-auto flex items-center gap-2">
+                            <span id="active-count" class="bg-green-950 text-green-400 px-3 py-1 rounded-full text-[10px] terminal-font border border-green-800">0 VIVOS</span>
+                        </div>
+                    </div>
+
+                    <div id="grid-players" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Generado por JS -->
+                    </div>
+
+                    <div id="empty-view" class="flex flex-col items-center justify-center h-96 opacity-10 transition-opacity">
+                        <div class="sg-circle border-zinc-500 w-24 h-24 border-4 mb-6"></div>
+                        <p class="terminal-font text-xl">SIN CONEXIÓN CON JUGADORES</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let state = JSON.parse(localStorage.getItem('sg_final_v1')) || { players: [], total: 0 };
+        const MAX_PIGGY = 50000; // Capacidad visual de la hucha para el meter
+
+        function update() {
+            const grid = document.getElementById('grid-players');
+            const empty = document.getElementById('empty-view');
+            const jackpot = document.getElementById('jackpot-val');
+            const counter = document.getElementById('active-count');
+            const meter = document.getElementById('fill-level');
+
+            // Actualizar Hucha
+            jackpot.innerText = state.total.toLocaleString() + '€';
+            const fillPercent = Math.min((state.total / MAX_PIGGY) * 100, 100);
+            meter.style.width = fillPercent + '%';
+
+            // Actualizar Contador
+            const alive = state.players.filter(p => p.lives > 0).length;
+            counter.innerText = `${alive} JUGADORES VIVOS`;
+
+            grid.innerHTML = '';
+            if (state.players.length > 0) {
+                empty.classList.add('hidden');
+                
+                // Orden: Vivos -> Por Numero
+                const sorted = [...state.players].sort((a,b) => {
+                    if (a.lives > 0 && b.lives === 0) return -1;
+                    if (a.lives === 0 && b.lives > 0) return 1;
+                    return a.id.localeCompare(b.id);
+                });
+
+                sorted.forEach(p => {
+                    const card = document.createElement('div');
+                    const isEliminated = p.lives === 0;
+                    card.className = `player-card p-6 transition-all duration-500 ${isEliminated ? 'eliminated-overlay grayscale' : 'alive-card'}`;
+                    
+                    const lifeWidth = (p.lives / 5) * 100;
+                    const criticalClass = p.lives === 1 ? 'life-critical' : '';
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="terminal-font text-4xl ${isEliminated ? 'text-pink-600' : 'text-white'}">#${p.id}</span>
+                                <p class="text-[9px] uppercase tracking-widest text-zinc-500 mt-1">Sujeto de Análisis</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="terminal-font text-xs ${isEliminated ? 'text-pink-600' : 'text-zinc-400'} uppercase">Multas: ${p.fines}</span>
+                                <div class="flex gap-1 mt-2">
+                                    <button onclick="changeLife('${p.id}', 1)" class="w-6 h-6 bg-zinc-800 text-[10px] hover:bg-green-600 transition-colors text-white">+</button>
+                                    <button onclick="changeLife('${p.id}', -1)" class="w-6 h-6 bg-zinc-800 text-[10px] hover:bg-pink-600 transition-colors text-white">-</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-[10px] terminal-font uppercase">
+                                <span>Energía Vital</span>
+                                <span class="${isEliminated ? 'text-pink-600 animate-pulse' : ''}">${isEliminated ? 'ELIMINADO' : p.lives + '/5'}</span>
+                            </div>
+                            <div class="life-bar">
+                                <div class="life-fill ${criticalClass}" style="width: ${lifeWidth}%"></div>
+                            </div>
+                        </div>
+                        ${!isEliminated ? `
+                        <div class="mt-4 pt-4 border-t border-zinc-800 flex justify-between items-center">
+                            <div class="flex gap-1">
+                                <div class="w-1 h-3 bg-green-500/20"></div>
+                                <div class="w-1 h-3 bg-green-500/40"></div>
+                                <div class="w-1 h-3 bg-green-500/60 animate-bounce"></div>
+                            </div>
+                            <button onclick="remove('${p.id}')" class="text-[9px] text-zinc-700 hover:text-red-500 transition-colors terminal-font">[ ELIMINAR REGISTRO ]</button>
+                        </div>` : ''}
+                    `;
+                    grid.appendChild(card);
+                });
+            } else {
+                empty.classList.remove('hidden');
+            }
+            localStorage.setItem('sg_final_v1', JSON.stringify(state));
+        }
+
+        function addPlayer() {
+            const id = document.getElementById('in-id').value.trim();
+            const lives = parseInt(document.getElementById('in-lives').value);
+            if (!id || state.players.find(p => p.id === id)) return;
+
+            state.players.push({ id, lives, fines: 0 });
+            document.getElementById('in-id').value = '';
+            update();
+        }
+
+        function changeLife(id, delta) {
+            const p = state.players.find(x => x.id === id);
+            if (!p) return;
+            
+            p.lives += delta;
+            if (p.lives < 0) p.lives = 0;
+            if (p.lives > 5) p.lives = 5;
+            
+            if (delta < 0) {
+                spawnCoin();
+                p.fines++;
+                state.total += 1000; // Penalización por error
+                if (p.lives === 0) state.total += 5000; // Plus por eliminación total
+            }
+            update();
+        }
+
+        function spawnCoin() {
+            const container = document.getElementById('coin-spawn');
+            const coin = document.createElement('div');
+            coin.className = 'coin-fx';
+            coin.style.left = Math.random() * 80 + 10 + '%';
+            container.appendChild(coin);
+            
+            const piggy = document.getElementById('visual-piggy');
+            piggy.style.transform = 'scale(1.1) rotate(3deg)';
+            
+            setTimeout(() => {
+                coin.remove();
+                piggy.style.transform = 'scale(1)';
+            }, 600);
+        }
+
+        function manualPenalty() {
+            state.total += 1000;
+            spawnCoin();
+            update();
+        }
+
+        function remove(id) {
+            state.players = state.players.filter(p => p.id !== id);
+            update();
+        }
+
+        function save() {
+            alert("REGISTRO ENCRIPTADO. DATOS ENVIADOS AL FRONT MAN.");
+            localStorage.setItem('sg_final_v1', JSON.stringify(state));
+        }
+
+        function fullReset() {
+            if(confirm("CONFIRME PURGA TOTAL. TODOS LOS SUJETOS SERÁN BORRADOS.")) {
+                state = { players: [], total: 0 };
+                update();
+            }
+        }
+
+        // Reloj de Sistema
+        setInterval(() => {
+            const time = new Date().toLocaleTimeString('es-ES', { hour12: false });
+            document.getElementById('clock').innerText = `SERVER_TIME: ${time}`;
+        }, 1000);
+
+        window.onload = update;
+    </script>
+</body>
+</html>

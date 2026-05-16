@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE SOUND GAME - Terminal VIP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --squid-pink: #ff0b55;
+            --squid-green: #037a76;
+            --squid-dark: #0a0a0a;
+            --squid-border: #333;
+        }
+        body {
+            background-color: var(--squid-dark);
+            color: #e2e2e2;
+            font-family: 'Share Tech Mono', monospace;
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            min-height: 100vh;
+        }
+        .pixel-font { font-family: 'Press Start 2P', cursive; }
+        
+        .panel-vip {
+            background: rgba(20, 20, 20, 0.95);
+            border: 2px solid var(--squid-border);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .panel-vip::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: var(--squid-pink);
+        }
+
+        .btn-action {
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            text-transform: uppercase;
+        }
+        .btn-pink { background: var(--squid-pink); color: white; }
+        .btn-pink:hover { box-shadow: 0 0 15px var(--squid-pink); transform: translateY(-1px); }
+        
+        .btn-outline-pink { border-color: var(--squid-pink); color: var(--squid-pink); }
+        .btn-outline-pink:hover { background: var(--squid-pink); color: white; }
+
+        .piggy-container {
+            background: radial-gradient(circle at center, #222 0%, #050505 100%);
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+        }
+
+        .status-dead { background: rgba(255, 11, 85, 0.1); border-color: var(--squid-pink) !important; opacity: 0.8; }
+        .status-dead .player-id { text-decoration: line-through; color: var(--squid-pink); }
+
+        /* Iconos de la serie */
+        .shape { display: inline-block; width: 12px; height: 12px; margin-right: 5px; }
+        .circle { border: 2px solid white; border-radius: 50%; }
+        .triangle { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid white; background: none; }
+        .square { border: 2px solid white; }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.03), transparent);
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="scanline"></div>
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Barra Superior -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+            <div class="flex items-center gap-4">
+                <div class="bg-pink-600 p-3 rounded-sm">
+                    <div class="square w-6 h-6"></div>
+                </div>
+                <div>
+                    <h1 class="pixel-font text-xl text-white tracking-tighter">S.G. CONTROL CENTER</h1>
+                    <div class="flex items-center gap-3 text-xs mt-1 text-gray-500 uppercase tracking-widest">
+                        <span>Terminal: 001</span>
+                        <span class="text-pink-500">● SYSTEM ONLINE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- El Cerdito VIP -->
+            <div id="piggy-box" class="piggy-container p-4 px-8 flex flex-col items-center rounded-lg">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="circle shape border-yellow-500"></div>
+                    <span class="pixel-font text-[10px] text-yellow-500">JACKPOT ACUMULADO</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl">💰</span>
+                    <span id="jackpot-amount" class="pixel-font text-3xl text-yellow-400">0€</span>
+                </div>
+                <button onclick="addToJackpot(1000)" class="mt-3 text-[9px] pixel-font text-yellow-500/80 hover:text-yellow-400">
+                    [ INGRESAR PENALIZACIÓN ]
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Panel Lateral: Registro y Acciones -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="panel-vip p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="triangle shape border-b-pink-500"></div>
+                        <h2 class="pixel-font text-xs text-pink-500">REGISTRO DE SUJETOS</h2>
+                    </div>
+                    
+                    <div class="space-y-5">
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-gray-600 text-xs">#</span>
+                            <input type="text" id="p-id" placeholder="NUM JUGADOR" class="w-full bg-zinc-900 border border-zinc-800 p-2 pl-7 rounded text-white focus:border-pink-600 outline-none uppercase">
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="flex-1">
+                                <label class="text-[10px] text-zinc-500 uppercase block mb-1">Vidas</label>
+                                <input type="number" id="p-lives" value="3" class="w-full bg-zinc-900 border border-zinc-800 p-2 rounded text-white outline-none">
+                            </div>
+                            <div class="flex-1 flex flex-col justify-end">
+                                <button onclick="registerPlayer()" class="btn-pink py-2 rounded text-[10px] pixel-font">REGISTRAR</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-vip p-6">
+                    <h2 class="pixel-font text-xs text-zinc-500 mb-4">COMANDOS DE SISTEMA</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="saveSession()" class="btn-outline-pink p-2 rounded text-[9px] pixel-font">GUARDAR</button>
+                        <button onclick="clearDead()" class="bg-zinc-800 hover:bg-zinc-700 p-2 rounded text-[9px] pixel-font">PURGAR CAÍDOS</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Principal: Monitor de Jugadores -->
+            <div class="lg:col-span-8">
+                <div class="panel-vip p-6 min-h-[500px]">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-2">
+                            <div class="square shape border-white"></div>
+                            <h2 class="pixel-font text-xs uppercase">Monitor de Supervivencia</h2>
+                        </div>
+                        <span id="player-count" class="text-[10px] bg-zinc-800 px-2 py-1 rounded">0 SUJETOS</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-[10px] text-zinc-600 uppercase text-left border-b border-zinc-800">
+                                    <th class="pb-3 px-2">ID Sujeto</th>
+                                    <th class="pb-3 px-2 text-center">Estado Vital</th>
+                                    <th class="pb-3 px-2 text-center">Embargos</th>
+                                    <th class="pb-3 px-2 text-right">Protocolo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="player-list">
+                                <!-- Datos inyectados -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="no-players" class="flex flex-col items-center justify-center h-64 text-zinc-700">
+                        <div class="circle shape w-16 h-16 border-4 mb-4 opacity-10"></div>
+                        <p class="pixel-font text-[9px] uppercase">Esperando conexión de jugadores...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let players = JSON.parse(localStorage.getItem('sg_v3_players')) || [];
+        let jackpot = parseInt(localStorage.getItem('sg_v3_jackpot')) || 0;
+
+        function refresh() {
+            const list = document.getElementById('player-list');
+            const empty = document.getElementById('no-players');
+            const jackpotText = document.getElementById('jackpot-amount');
+            const countText = document.getElementById('player-count');
+
+            jackpotText.innerText = jackpot.toLocaleString() + '€';
+            countText.innerText = `${players.length} SUJETOS`;
+
+            list.innerHTML = '';
+            if (players.length === 0) {
+                empty.classList.remove('hidden');
+            } else {
+                empty.classList.add('hidden');
+                
+                // Orden: Vivos arriba, luego por ID
+                const sorted = [...players].sort((a, b) => {
+                    if (a.lives > 0 && b.lives === 0) return -1;
+                    if (a.lives === 0 && b.lives > 0) return 1;
+                    return a.id.localeCompare(b.id);
+                });
+
+                sorted.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.className = `border-b border-zinc-900/50 hover:bg-white/5 transition-colors ${p.lives === 0 ? 'status-dead' : ''}`;
+                    
+                    const hearts = "❤️".repeat(p.lives) + "🖤".repeat(Math.max(0, 3 - p.lives));
+
+                    tr.innerHTML = `
+                        <td class="py-4 px-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-1 h-1 bg-pink-500"></div>
+                                <span class="pixel-font text-sm player-id">${p.id}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-2 text-center text-lg">${hearts}</td>
+                        <td class="py-4 px-2 text-center">
+                            <span class="font-mono text-zinc-400 bg-zinc-900 px-3 py-1 rounded border border-zinc-800">
+                                ELIM: ${p.deaths}
+                            </span>
+                        </td>
+                        <td class="py-4 px-2 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="modLife('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center bg-zinc-800 hover:bg-green-900 text-green-500 rounded">+</button>
+                                <button onclick="modLife('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center bg-zinc-800 hover:bg-pink-900 text-pink-500 rounded">-</button>
+                                <button onclick="deletePlayer('${p.id}')" class="w-8 h-8 flex items-center justify-center text-zinc-700 hover:text-white">×</button>
+                            </div>
+                        </td>
+                    `;
+                    list.appendChild(tr);
+                });
+            }
+            localStorage.setItem('sg_v3_players', JSON.stringify(players));
+            localStorage.setItem('sg_v3_jackpot', jackpot);
+        }
+
+        function registerPlayer() {
+            const id = document.getElementById('p-id').value.trim();
+            const lives = parseInt(document.getElementById('p-lives').value);
+            if (!id) return;
+            if (players.find(p => p.id === id)) return;
+
+            players.push({ id, lives, deaths: 0 });
+            document.getElementById('p-id').value = '';
+            refresh();
+        }
+
+        function modLife(id, change) {
+            const p = players.find(x => x.id === id);
+            if (!p) return;
+            
+            p.lives += change;
+            if (p.lives < 0) p.lives = 0;
+            
+            if (change < 0 && p.lives === 0) {
+                p.deaths++;
+                addToJackpot(500); // Penalización VIP
+            }
+            refresh();
+        }
+
+        function addToJackpot(val) {
+            jackpot += val;
+            const box = document.getElementById('piggy-box');
+            box.classList.add('scale-105', 'border-white');
+            setTimeout(() => box.classList.remove('scale-105', 'border-white'), 300);
+            refresh();
+        }
+
+        function deletePlayer(id) {
+            players = players.filter(p => p.id !== id);
+            refresh();
+        }
+
+        function clearDead() {
+            if(confirm("¿Confirmar purga de sujetos eliminados?")) {
+                players = players.filter(p => p.lives > 0);
+                refresh();
+            }
+        }
+
+        function saveSession() {
+            localStorage.setItem('sg_v3_players', JSON.stringify(players));
+            alert("Sincronización con el servidor VIP completa.");
+        }
+
+        window.onload = refresh;
+    </script>
+</body>
+</html>
